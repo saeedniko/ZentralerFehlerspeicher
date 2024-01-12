@@ -4,7 +4,8 @@
 #include <stdio.h>
  
 #define MAX_ERRORS 100
-#define MAX_RETRY_COUNT 3
+#define MAX_RETRY_COUNT_info 3
+#define MAX_RETRY_COUNT_LOW 5
  
 typedef enum {
     INFORMATION,
@@ -58,6 +59,7 @@ void ERR_Init() {
 void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]) {
     // Set a new error entry
     // Find the next available position in the error storage
+    //--->majid update here
     if (errorCount < MAX_ERRORS) {
         ErrorEntry *newError = &errorStorage[errorCount];
         newError->moduleID = moduleID;
@@ -69,6 +71,7 @@ void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t par
     }
     else{
         printf("Memory Full\n");
+
     }
 }
  
@@ -107,10 +110,11 @@ void ERR_CountEngineStart() {
 void ERR_Handler() {
     printf("error handel\n");
     // Perform error handling tasks, such as clearing non-critical errors after a certain number of engine starts
+    ///------->saeed
     for (uint8_t i = 0; i < errorCount; i++) {
-        if (errorStorage[i].severity <= MID) {
+        if (errorStorage[i].severity <= INFORMATION) {
             // Clear non-critical errors after a certain number of engine starts
-            if (engineStartCount >= MAX_RETRY_COUNT) {
+            if (engineStartCount >= MAX_RETRY_COUNT_info) {
                 // Swap the current error with the last one
                 printf("Error clear\n");
                 print(errorCount);
@@ -118,8 +122,20 @@ void ERR_Handler() {
                 errorCount--;
                 i--;
             }
+                    if (errorStorage[i].severity <= LOW) {
+            // Clear non-critical errors after a certain number of engine starts
+            if (engineStartCount >= MAX_RETRY_COUNT_info) {
+                // Swap the current error with the last one
+                printf("Error clear\n");
+                print(errorCount);
+                errorStorage[i] = errorStorage[errorCount - 1];
+                errorCount--;
+                i--;
+            }
+
         }
     }
+}
 }
  
 void ERR_DeInit() {
@@ -140,7 +156,7 @@ int main() {
     
  
     uint8_t params[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-    ERR_Set(1, 100, HIGH, params);
+    ERR_Set(1, 100, INFORMATION, params);
     
  
     Severity severity;
