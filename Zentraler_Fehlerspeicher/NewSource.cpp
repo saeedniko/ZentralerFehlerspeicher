@@ -1,7 +1,9 @@
+#include <Windows.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
  
 #define MAX_ERRORS 100
 #define MAX_RETRY_COUNT_INFO 3
@@ -17,34 +19,38 @@ typedef enum {
     HIGH,
     VERY_CRITICAL
 } Severity;
+
+typedef unsigned char t_BYTE;
+typedef unsigned short t_WORD;
+typedef unsigned long t_DWORD;
  
 typedef struct {
-    uint16_t moduleID;
-    uint16_t errorID;
+    t_WORD moduleID;
+    t_WORD errorID;
     Severity severity;
-    uint32_t timeStamp;
-    uint32_t timeDelta;
-    uint8_t occurrenceCount;
-    uint8_t parameters[8];
+    t_DWORD timeStamp;
+    t_DWORD timeDelta;
+    t_BYTE occurrenceCount;
+    t_BYTE parameters[8];
 } ErrorEntry;
  
 static ErrorEntry errorStorage[MAX_ERRORS];
-static uint8_t errorCount = 0;
-static uint32_t systemStartTime = 0;
-static uint32_t engineStartCount = 0;
-static uint32_t TempTickCount = 0;
+static t_BYTE errorCount = 0;
+static t_DWORD systemStartTime = 0;
+static t_DWORD engineStartCount = 0;
+static t_DWORD TempTickCount = 0;
 
- void print(int number){
-     char str[20]; // Make sure the buffer is large enough to hold the resulting string
+void print(int number){
+    char str[20]; // Make sure the buffer is large enough to hold the resulting string
 
     // Using sprintf
     sprintf(str, "%d", number);
-   // printf("%s\n", str);
+    // printf("%s\n", str);
     printf("%s", str);
     printf(".");
  }
 
-static uint32_t GetTickCount() {
+static t_DWORD GetTickCount() {
     TempTickCount = TempTickCount + 1000;
     
     // Implement this function to get the current system tick count in milliseconds
@@ -60,7 +66,8 @@ void ERR_Init() {
         // Additional initialization code if needed
     }
 }
- bool update(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]){
+
+bool update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[8]){
     for (size_t i = 0; i < MAX_ERRORS; i++)
     {
         if (errorStorage[i].moduleID==moduleID  &&  errorStorage[i].errorID==errorID && errorStorage[i].severity==severity)
@@ -77,7 +84,7 @@ void ERR_Init() {
     return false;
     
  }
-void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]) {
+void ERR_Set(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[8]) {
     // Set a new error entry
     // Find the next available position in the error storage
     //--->majid update here
@@ -97,10 +104,10 @@ void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t par
     }
 }
  
-bool ERR_Get(uint16_t moduleID, uint16_t errorID, Severity* severity) {
+bool ERR_Get(t_WORD moduleID, t_WORD errorID, Severity* severity) {
     // Check if a specific error is set for a module
     
-    for (uint8_t i = 0; i < errorCount; i++) {
+    for (t_BYTE i = 0; i < errorCount; i++) {
         if (errorStorage[i].moduleID == moduleID && errorStorage[i].errorID == errorID) {
             *severity = errorStorage[i].severity;
             printf("Error get\n");
@@ -114,7 +121,7 @@ void ERR_Remove(Severity severity) {
     printf("Error remove\n");
     // Remove errors based on severity
     ErrorEntry *lastError = &errorStorage[errorCount - 1];
-    for (uint8_t i = 0; i < errorCount; i++) {
+    for (t_BYTE i = 0; i < errorCount; i++) {
         if (errorStorage[i].severity <= severity) {
             // Swap the current error with the last one
             errorStorage[i] = *lastError;
@@ -134,7 +141,7 @@ void ERR_Handler() {
     printf("error handel\n");
     // Perform error handling tasks, such as clearing non-critical errors after a certain number of engine starts
     ///------->saeed
-    for (uint8_t i = 0; i < errorCount; i++) {
+    for (t_BYTE i = 0; i < errorCount; i++) {
         if (errorStorage[i].severity <= INFORMATION) {
             // Clear non-critical errors after a certain number of engine starts
             if (engineStartCount >= MAX_RETRY_COUNT_INFO) {
@@ -222,7 +229,7 @@ int main() {
   
     
  
-    uint8_t params[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+    t_BYTE params[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     ERR_Set(1, 100, HIGH, params);
     
  
