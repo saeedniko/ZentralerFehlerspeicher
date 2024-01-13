@@ -36,7 +36,9 @@ static uint32_t TempTickCount = 0;
 
     // Using sprintf
     sprintf(str, "%d", number);
-    printf("%s\n", str);
+   // printf("%s\n", str);
+    printf("%s", str);
+    printf(".");
  }
 
 static uint32_t GetTickCount() {
@@ -55,12 +57,28 @@ void ERR_Init() {
         // Additional initialization code if needed
     }
 }
- 
+ bool update(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]){
+    for (size_t i = 0; i < MAX_ERRORS; i++)
+    {
+        if (errorStorage[i].moduleID==moduleID  &&  errorStorage[i].errorID==errorID && errorStorage[i].severity==severity)
+        {
+            errorStorage[i].moduleID = moduleID;
+            errorStorage[i].errorID = errorID;
+            errorStorage[i].severity = severity;
+            errorStorage[i].timeStamp = GetTickCount();
+            // Set other parameters...
+            return true;
+        }
+        
+    }
+    return false;
+    
+ }
 void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]) {
     // Set a new error entry
     // Find the next available position in the error storage
     //--->majid update here
-    if (errorCount < MAX_ERRORS) {
+    if (errorCount < MAX_ERRORS && !update(moduleID,errorID,severity,parameters) ) {
         ErrorEntry *newError = &errorStorage[errorCount];
         newError->moduleID = moduleID;
         newError->errorID = errorID;
@@ -68,19 +86,21 @@ void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t par
         newError->timeStamp = GetTickCount();
         // Set other parameters...
         errorCount++;
+         printf("error added\n");
     }
     else{
-        printf("Memory Full\n");
+        printf("error Updated\n");
 
     }
 }
  
 bool ERR_Get(uint16_t moduleID, uint16_t errorID, Severity* severity) {
     // Check if a specific error is set for a module
-    printf("Error get\n");
+    
     for (uint8_t i = 0; i < errorCount; i++) {
         if (errorStorage[i].moduleID == moduleID && errorStorage[i].errorID == errorID) {
             *severity = errorStorage[i].severity;
+            printf("Error get\n");
             return true;
         }
     }
@@ -146,17 +166,29 @@ void ERR_DeInit() {
     engineStartCount = 0;
     // Additional deinitialization code if needed
 }
+void error_Show(){
+    for (size_t i = 0; i < MAX_ERRORS; i++)
+    {
+       print(errorStorage[i].errorID);
+       print(errorStorage[i].moduleID);
+       print(errorStorage[i].timeStamp);
+       print(errorStorage[i].severity);
+       printf("\n");
+    }
+    
+}
  
 int main() {
     // Example usage
     ERR_Init();
     for (size_t i = 0; i < 105; i++)
     {
+        print(i);
   
     
  
     uint8_t params[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-    ERR_Set(1, 100, INFORMATION, params);
+    ERR_Set(1, 100, HIGH, params);
     
  
     Severity severity;
@@ -171,7 +203,7 @@ int main() {
     ERR_Handler();
     }
     // Perform other tasks...
- 
+    error_Show();
     ERR_DeInit();
  
     return 0;
