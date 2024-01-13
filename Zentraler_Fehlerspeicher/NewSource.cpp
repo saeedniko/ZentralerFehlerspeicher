@@ -4,8 +4,11 @@
 #include <stdio.h>
  
 #define MAX_ERRORS 100
-#define MAX_RETRY_COUNT_info 3
+#define MAX_RETRY_COUNT_INFO 3
 #define MAX_RETRY_COUNT_LOW 5
+#define MAX_RETRY_COUNT_MID 8
+#define MAX_RETRY_COUNT_HIGH 10
+#define MAX_RETRY_COUNT_VERY_CRITICAL 15
  
 typedef enum {
     INFORMATION,
@@ -134,7 +137,7 @@ void ERR_Handler() {
     for (uint8_t i = 0; i < errorCount; i++) {
         if (errorStorage[i].severity <= INFORMATION) {
             // Clear non-critical errors after a certain number of engine starts
-            if (engineStartCount >= MAX_RETRY_COUNT_info) {
+            if (engineStartCount >= MAX_RETRY_COUNT_INFO) {
                 // Swap the current error with the last one
                 printf("Error clear\n");
                 print(errorCount);
@@ -142,20 +145,52 @@ void ERR_Handler() {
                 errorCount--;
                 i--;
             }
-                    if (errorStorage[i].severity <= LOW) {
-            // Clear non-critical errors after a certain number of engine starts
-            if (engineStartCount >= MAX_RETRY_COUNT_info) {
-                // Swap the current error with the last one
-                printf("Error clear\n");
-                print(errorCount);
-                errorStorage[i] = errorStorage[errorCount - 1];
-                errorCount--;
-                i--;
+            if (errorStorage[i].severity <= LOW) {
+                // Clear non-critical errors after a certain number of engine starts
+                if (engineStartCount >= MAX_RETRY_COUNT_LOW) {
+                    // Swap the current error with the last one
+                    printf("Error clear\n");
+                    print(errorCount);
+                    errorStorage[i] = errorStorage[errorCount - 1];
+                    errorCount--;
+                    i--;
+                }
             }
-
+            if (errorStorage[i].severity <= MID) {
+                // Clear non-critical errors after a certain number of engine starts
+                if (engineStartCount >= MAX_RETRY_COUNT_MID) {
+                    // Swap the current error with the last one
+                    printf("Error clear\n");
+                    print(errorCount);
+                    errorStorage[i] = errorStorage[errorCount - 1];
+                    errorCount--;
+                    i--;
+                }
+            }
+            if (errorStorage[i].severity <= HIGH) {
+                // Clear non-critical errors after a certain number of engine starts
+                if (engineStartCount >= MAX_RETRY_COUNT_HIGH) {
+                    // Swap the current error with the last one
+                    printf("Error clear\n");
+                    print(errorCount);
+                    errorStorage[i] = errorStorage[errorCount - 1];
+                    errorCount--;
+                    i--;
+                }
+            }
+            if (errorStorage[i].severity <= VERY_CRITICAL) {
+                // Clear non-critical errors after a certain number of engine starts
+                if (engineStartCount >= MAX_RETRY_COUNT_VERY_CRITICAL) {
+                    // Swap the current error with the last one
+                    printf("Error clear\n");
+                    print(errorCount);
+                    errorStorage[i] = errorStorage[errorCount - 1];
+                    errorCount--;
+                    i--;
+                }
+            }
         }
     }
-}
 }
  
 void ERR_DeInit() {
