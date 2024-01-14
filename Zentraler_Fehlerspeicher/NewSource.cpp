@@ -50,7 +50,7 @@ void print(int number){
     printf(".");
  }
 
-static t_DWORD GetTickCount() {
+t_DWORD GetTickCount() {
     TempTickCount = TempTickCount + 1000;
     
     // Implement this function to get the current system tick count in milliseconds
