@@ -76,20 +76,45 @@ void ERR_Init()
         // Additional initialization code if needed
     }
 }
-
-void Error_Check(t_WORD moduleID, t_WORD errorID)
-{
-    for (size_t i = 0; i < MAX_ERRORS; i++)
+size_t ERR_Get(t_WORD moduleID, t_WORD errorID)
+{size_t i;
+        for (i = 0; i < MAX_ERRORS; i++)
     {
-        return ERR_Get(moduleID, errorID, i);
+    // Check if a specific error is set for a module
+    if (errorStorage[i].moduleID == moduleID && errorStorage[i].errorID == errorID)
+    {
+        if (MaxStamp < errorStorage[i].timeStamp)
+        {
+            MaxStamp = errorStorage[i].timeStamp;
+            MaxOcca = errorStorage[i].occurrenceCount;
+            errorNumber = i;
+        }
     }
-    if (MaxStamp > 0)
+    }
+    return i;
+
+}
+
+void ERR_Set(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[8])
+{
+    // Set a new error entry
+    // Find the next available position in the error storage
+    if (errorCount < MAX_ERRORS)
     {
-        return ERR_Update(errorStorage[errorNumber].moduleID == moduleID, errorStorage[errorNumber].errorID == errorID, errorNumber);
+        ErrorEntry *newError = &errorStorage[errorCount];
+        newError->moduleID = moduleID;
+        newError->errorID = errorID;
+        newError->severity = severity;
+        newError->timeStamp = GetTickCount();
+        newError->occurrenceCount = MaxOcca + 1;
+        newError->timeDelta = GetTickCount() - MaxStamp;
+        newError->parameters[8]=parameters[8];
+        errorCount++;
+        printf("error added\n");
     }
     else
     {
-        return ERR_Set(moduleID, errorID);
+        printf("error Updated\n");
     }
 }
 
@@ -101,79 +126,32 @@ bool ERR_Update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE param
         errorStorage[errorNumber].timeDelta = GetTickCount() - errorStorage[errorNumber].timeStamp;
         errorStorage[errorNumber].timeStamp = GetTickCount();
         errorStorage[errorNumber].occurrenceCount = errorStorage[errorNumber].occurrenceCount + 1;
+        errorStorage[errorNumber].parameters[8]=parameters[8];
         return true;
-        // Set other parameters...
+
     }
     else
     {
-        ERR_Set(moduleID, errorID, severity, parameters);
+        ERR_Set(moduleID, errorID, severity, &parameters[8]);
         return true;
     }
     return false;
 }
 
-void ERR_Set(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[8])
+void Error_Check(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[8])
 {
-    // Set a new error entry
-    // Find the next available position in the error storage
-    //--->majid update here
-    if (errorCount < MAX_ERRORS)
+    ERR_Get(moduleID, errorID );
+    if (MaxStamp > 0)
     {
-        ErrorEntry *newError = &errorStorage[errorCount];
-        newError->moduleID = moduleID;
-        newError->errorID = errorID;
-        newError->severity = severity;
-        newError->timeStamp = GetTickCount();
-        newError->occurrenceCount = MaxOcca + 1;
-        newError->timeDelta = GetTickCount() - MaxStamp;
-        // Set other parameters...
-        errorCount++;
-        printf("error added\n");
+        ERR_Update(moduleID, errorID , severity , &parameters[8]);
     }
     else
     {
-        ERR_Handler;
-        printf("error Updated\n");
+        ERR_Set(moduleID, errorID, severity, &parameters[8]);
     }
+    MaxStamp=0;
 }
 
-void ERR_Get(t_WORD moduleID, t_WORD errorID, t_BYTE i)
-{
-    // Check if a specific error is set for a module
-    if (errorStorage[i].moduleID == moduleID && errorStorage[i].errorID == errorID)
-    {
-        if (MaxStamp < errorStorage[i].timeStamp)
-        {
-            MaxStamp = errorStorage[i].timeStamp;
-            MaxOcca = errorStorage[i].occurrenceCount;
-            errorNumber = i;
-        }
-    }
-}
-
-void ERR_Remove(Severity severity)
-{
-    printf("Error remove\n");
-    // Remove errors based on severity
-    ErrorEntry *lastError = &errorStorage[errorCount - 1];
-    for (t_BYTE i = 0; i < errorCount; i++)
-    {
-        if (errorStorage[i].severity <= severity)
-        {
-            // Swap the current error with the last one
-            errorStorage[i] = *lastError;
-            errorCount--;
-            i--;
-        }
-    }
-}
-
-void ERR_CountEngineStart()
-{
-    printf("Engine Start\n");
-    // Increment the engine start counter
-    engineStartCount++;
-}
 
 void ERR_Handler()
 {
@@ -250,6 +228,35 @@ void ERR_Handler()
     }
 }
 
+
+
+
+void ERR_Remove(Severity severity)
+{
+    printf("Error remove\n");
+    // Remove errors based on severity
+    ErrorEntry *lastError = &errorStorage[errorCount - 1];
+    for (t_BYTE i = 0; i < errorCount; i++)
+    {
+        if (errorStorage[i].severity <= severity)
+        {
+            // Swap the current error with the last one
+            errorStorage[i] = *lastError;
+            errorCount--;
+            i--;
+        }
+    }
+}
+
+void ERR_CountEngineStart()
+{
+    printf("Engine Start\n");
+    // Increment the engine start counter
+    engineStartCount++;
+}
+
+
+
 void ERR_DeInit()
 {
     printf("deint\n");
@@ -284,7 +291,7 @@ int main()
         ERR_Set(1, 100, HIGH, params);
 
         Severity severity;
-        if (ERR_Get(1, 100, &severity))
+        if (ERR_Get(1, 100))
         {
             // Error is set for module 1 with error ID 100
             // Handle the error based on severity
