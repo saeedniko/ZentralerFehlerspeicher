@@ -106,27 +106,39 @@ size_t ERR_Get(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parame
                 MaxStamp = errorStorage[i].timeStamp;
                 MaxOcca = errorStorage[i].occurrenceCount;
                 errorNumber = i;
-
-                if (MaxOcca < MAX_ERROR_ALLOWED)
-                {
-                    // Find the next available position in the error storage
-                    if (errorCount < MAX_ERRORS)
-                    {
-                        ERR_Set(moduleID, errorID, severity, &parameters[7]);
-                    }
-                    else
-                    {
-                        ERR_Handler();
-                    }
-                }
-                else
-                {
-                    ERR_Update(moduleID, errorID, severity, &parameters[7]);
-                }
+            }
+        }
+    }
+    if (MaxStamp > 0)
+    {
+        if (MaxOcca < MAX_ERROR_ALLOWED)
+        {
+            // Find the next available position in the error storage
+            if (errorCount < MAX_ERRORS)
+            {
+                ERR_Set(moduleID, errorID, severity, &parameters[7]);
+            }
+            else
+            {
+                ERR_Handler();
+                ERR_Set(moduleID, errorID, severity, &parameters[7]);
             }
         }
         else
         {
+            ERR_Update(moduleID, errorID, severity, &parameters[7]);
+        }
+    }
+    else
+    {
+        // Find the next available position in the error storage
+        if (errorCount < MAX_ERRORS)
+        {
+            ERR_Set(moduleID, errorID, severity, &parameters[7]);
+        }
+        else
+        {
+            ERR_Handler();
             ERR_Set(moduleID, errorID, severity, &parameters[7]);
         }
     }
