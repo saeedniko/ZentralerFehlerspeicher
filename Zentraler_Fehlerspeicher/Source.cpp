@@ -48,21 +48,7 @@ void ERR_Init() {
     }
 }
 
-void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]) {
-    // Set a new error entry
-    // Find the next available position in the error storage
-    if (errorCount < MAX_ERRORS) {
-        errorStorage[errorCount].moduleID = moduleID;
-        errorStorage[errorCount].errorID = errorID;
-        errorStorage[errorCount].severity = severity;
-        errorStorage[errorCount].timeStamp = GetTickCount();
-        // Set other parameters...
-        errorCount++;
-    }
-    // inormation, low, Mid, High, Very Critical
 
-    ERR_Remove(info)
-}
 
 bool ERR_Get(uint16_t moduleID, uint16_t errorID, Severity* severity) {
     // Check if a specific error is set for a module
@@ -87,6 +73,21 @@ void ERR_Remove(Severity severity) {
         }
     }
 }
+void ERR_Set(uint16_t moduleID, uint16_t errorID, Severity severity, uint8_t parameters[8]) {
+    // Set a new error entry
+    // Find the next available position in the error storage
+    if (errorCount < MAX_ERRORS) {
+        errorStorage[errorCount].moduleID = moduleID;
+        errorStorage[errorCount].errorID = errorID;
+        errorStorage[errorCount].severity = severity;
+        errorStorage[errorCount].timeStamp = GetTickCount();
+        // Set other parameters...
+        errorCount++;
+    }
+    // inormation, low, Mid, High, Very Critical
+
+    ERR_Remove(INFORMATION);
+}
 
 void ERR_CountEngineStart() {
     // Increment the engine start counter
@@ -101,11 +102,6 @@ void ERR_Handler() {
             if (engineStartCount >= MAX_RETRY_COUNT) {
                 // Remove the error entry
                 // (This can involve shifting array elements to fill the gap)
-                for (errorStorage[i]. = 0; i < count; i++)
-                {
-                    /* code */
-                }
-                
                 // Decrement the error count
                 errorCount--;
                 i--;
@@ -129,7 +125,7 @@ int main() {
     ERR_Init();
   
 
-    uint8_t params[8] = { 2024, 01, 12, 1, 15, 6, 7, 8 };
+    uint8_t params[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
     
 
     Severity severity;
