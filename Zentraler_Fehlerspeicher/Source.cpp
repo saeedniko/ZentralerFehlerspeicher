@@ -17,9 +17,9 @@
 #define MAX_RETRY_COUNT_VERY_CRITICAL 15
 
 // Number of repeated errors for change to a higher severity
-#define MAX_REPEAT_ERROR_MID 5
-#define MAX_REPEAT_ERROR_HIGH 3
-#define MAX_REPEAT_ERROR_VERY_CRITICAL 10
+#define MAX_REPEAT_ERROR_MID 15
+#define MAX_REPEAT_ERROR_HIGH 10
+#define MAX_REPEAT_ERROR_VERY_CRITICAL 5
 
 typedef enum
 {
@@ -45,6 +45,17 @@ typedef struct
     t_BYTE occurrenceCount;
     t_BYTE parameters[7];
 } ErrorEntry;
+
+bool ERR_Handler();
+void ERR_Init();
+void ERR_Set(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7]);
+void ERR_Remove(ErrorEntry* errorToRemove);
+void ERR_DeInit();
+void ERR_Severity_Update(t_WORD moduleID, t_WORD errorID, Severity severity, Severity severity_IN);
+void ERR_Update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7]);
+void ERR_CountEngineStart();
+void ERR_Get(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7]);
+
 
 static ErrorEntry errorStorage[MAX_ERRORS];
 static t_BYTE errorCount = 0;
@@ -73,7 +84,7 @@ void print(int number)
     }
 }
 
-t_DWORD GetTickCount()
+t_DWORD MyGetTickCount()
 {
     TempTickCount = clock();
 
@@ -87,7 +98,7 @@ void ERR_Init()
     // Initialize the error module
     if (errorCount == 0)
     {
-        systemStartTime = GetTickCount();
+        systemStartTime = MyGetTickCount();
         printf("Error Init\n");
         // Additional initialization code if needed
     }
@@ -100,17 +111,17 @@ void ERR_Set(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE paramete
     newError->moduleID = moduleID;
     newError->errorID = errorID;
     newError->severity = severity;
-    newError->timeStamp = GetTickCount();
+    newError->timeStamp = MyGetTickCount();
     newError->occurrenceCount = MaxOcca + 1;
-    newError->timeDelta = GetTickCount() - MaxStamp;
+    newError->timeDelta = MyGetTickCount() - MaxStamp;
     newError->parameters[7] = parameters[7];
-    printf("error added with success\n ERROR: %hu - %hu - %d - %lu - %d - %lu - %hhu \n", 
-        errorStorage[errorCount].moduleID, 
-        errorStorage[errorCount].errorID, 
-        errorStorage[errorCount].severity, 
-        errorStorage[errorCount].timeStamp, 
-        errorStorage[errorCount].occurrenceCount, 
-        errorStorage[errorCount].timeDelta, 
+    printf("error added with success\n ERROR: %hu - %hu - %d - %lu - %d - %lu - %hhu \n",
+        errorStorage[errorCount].moduleID,
+        errorStorage[errorCount].errorID,
+        errorStorage[errorCount].severity,
+        errorStorage[errorCount].timeStamp,
+        errorStorage[errorCount].occurrenceCount,
+        errorStorage[errorCount].timeDelta,
         errorStorage[errorCount].parameters[7]);
     errorCount++;
     printf("Error count: --- %d ---\n\n", errorCount);
@@ -120,16 +131,22 @@ void ERR_Remove(ErrorEntry* errorToRemove)
 {
     // Find the position of the error to remove
     t_BYTE positionToRemove = 0;
-    while (positionToRemove < errorCount && &errorStorage[positionToRemove] != errorToRemove)
+    // while (positionToRemove < errorCount && &errorStorage[positionToRemove] != errorToRemove)
+    while (positionToRemove < errorCount && memcmp(&errorStorage[positionToRemove], errorToRemove, sizeof(ErrorEntry)) != 0)
     {
         positionToRemove++;
+        printf("positionToRemove: %d\n\n", &positionToRemove);
     }
 
     // If the error is found, swap it with the last one
     if (positionToRemove < errorCount)
     {
         errorStorage[positionToRemove] = errorStorage[errorCount - 1];
-        errorCount--;
+        if (errorCount > 1)
+        {
+            errorCount--;
+        }
+        printf("ErrorCount: %d\n\n", errorCount);
     }
     else
     {
@@ -138,19 +155,32 @@ void ERR_Remove(ErrorEntry* errorToRemove)
     }
 }
 
-bool ERR_DeInit()
+void ERR_DeInit()
 {
-    // Reset the entire module and all error messages
+    // Counter to track the number of times ERR_DeInit is called
+    static int deInitCounter = 0;
 
-    errorCount = 0;
-    systemStartTime = 0;
-    engineStartCount = 0;
+    // Check the counter before proceeding with cleanup
+    if (deInitCounter == 0)
+    {
+        // Reset the entire module and all error messages
+        errorCount = 0;
+        systemStartTime = 0;
+        engineStartCount = 0;
 
-    free(errorStorage);
+        free(errorStorage);
+        errorStorage[MAX_ERRORS];
 
-    printf("ERR_DeInit function is activated successfully \n");
+        printf("ERR_DeInit function is activated successfully \n");
 
-    return(1);
+        // Increment the counter to indicate that the cleanup has been performed
+        deInitCounter++;
+    }
+    else
+    {
+        printf("ERR_DeInit has already been called\n");
+    }
+    ERR_Init();
 }
 
 void ERR_Severity_Update(t_WORD moduleID, t_WORD errorID, Severity severity, Severity severity_IN)
@@ -166,11 +196,10 @@ void ERR_Severity_Update(t_WORD moduleID, t_WORD errorID, Severity severity, Sev
     }
 }
 
-
-bool ERR_Update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7])
+void ERR_Update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7])
 {
-    errorStorage[errorNumber].timeDelta = GetTickCount() - errorStorage[errorNumber].timeStamp;
-    errorStorage[errorNumber].timeStamp = GetTickCount();
+    errorStorage[errorNumber].timeDelta = MyGetTickCount() - errorStorage[errorNumber].timeStamp;
+    errorStorage[errorNumber].timeStamp = MyGetTickCount();
     errorStorage[errorNumber].occurrenceCount = errorStorage[errorNumber].occurrenceCount + 1;
     errorStorage[errorNumber].parameters[7] = parameters[7];
 
@@ -202,10 +231,11 @@ bool ERR_Update(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE param
             ERR_DeInit();
         }
     }
-    return false;
+    else if (severity < MID)
+    {
+        ERR_Handler();
+    }
 }
-
-
 
 bool ERR_Handler()
 {
@@ -248,14 +278,12 @@ bool ERR_Handler()
         else
         {
             printf("Error handling didn't success !!!\n");
-            return(false);
+            return (false);
         }
     }
     printf("Error handling started successfully\n");
     return (true);
 }
-
-
 
 void ERR_CountEngineStart()
 {
@@ -263,6 +291,7 @@ void ERR_CountEngineStart()
     // Increment the engine start counter
     engineStartCount++;
 }
+
 void ERR_Get(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE parameters[7])
 {
     for (size_t i = 0; i < MAX_ERRORS; i++)
@@ -290,7 +319,7 @@ void ERR_Get(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE paramete
             else
             {
                 if (ERR_Handler())
-                ERR_Set(moduleID, errorID, severity, parameters);
+                    ERR_Set(moduleID, errorID, severity, parameters);
             }
         }
         else
@@ -308,20 +337,18 @@ void ERR_Get(t_WORD moduleID, t_WORD errorID, Severity severity, t_BYTE paramete
         else
         {
             if (ERR_Handler())
-            ERR_Set(moduleID, errorID, severity, parameters);
+                ERR_Set(moduleID, errorID, severity, parameters);
         }
     }
 }
-
-
 
 int main()
 {
     // Error test
     t_WORD moduleID = 100;
-    t_WORD errorID = 22;
-    Severity severity = VERY_CRITICAL;
-    t_BYTE parameters[8] = { 2 };
+    t_WORD errorID = 11;
+    Severity severity = HIGH;
+    t_BYTE parameters[8] = { 1 };
 
     // Simulate checking if the engine has started
     bool engineStarted = true;
@@ -331,9 +358,8 @@ int main()
     // Run ERR_Init to initializing
     ERR_Init();
 
-
     // check for engine start
-    //while (1)
+    while (1)
     {
         // Introduce a timer with a 100 ms delay
         Sleep(1000);
@@ -355,12 +381,14 @@ int main()
 
             printf("errorCount: %d \n\n engineStartCount: %d \n\n", errorCount, engineStartCount);
 
-            for(int i = 0; i < 70; i++)
-
-            //if (NewError)
+            for (size_t i = 0; i < 70; i++)
             {
-                ERR_Get(moduleID, errorID, severity, &parameters[7]);
-                //NewError=false;
+                if (NewError)
+                {
+                    Sleep(1000);
+                    ERR_Get(moduleID, errorID, severity, &parameters[7]);
+                    //NewError = false;
+                }
             }
         }
     }
